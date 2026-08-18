@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CoolFix - Business Dashboard</title>
+<style>
+  :root{--teal:#128c7e;--dark:#075e54;--ink:#0f172a;--muted:#64748b;--line:#e6ebf1;--bg:#f4f6f9;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+  header{background:var(--dark);color:#fff;padding:14px 22px;display:flex;align-items:center;justify-content:space-between}
+  header .brand{display:flex;align-items:center;gap:12px;font-weight:600;font-size:18px}
+  header .avatar{width:34px;height:34px;border-radius:8px;background:var(--teal);display:flex;align-items:center;justify-content:center;font-weight:700}
+  header a{color:#cdeee6;text-decoration:none;font-size:14px}
+  .tabs{display:flex;gap:4px;padding:12px 22px 0;background:#fff;border-bottom:1px solid var(--line)}
+  .tab{padding:10px 16px;cursor:pointer;border-radius:8px 8px 0 0;font-size:14px;color:var(--muted);font-weight:500}
+  .tab.active{color:var(--teal);border-bottom:2px solid var(--teal);background:#f0fbf8}
+  main{padding:22px;max-width:1200px;margin:0 auto}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:8px}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px}
+  .stat .n{font-size:28px;font-weight:700}
+  .stat .l{color:var(--muted);font-size:13px;margin-top:2px}
+  .stat.alert .n{color:#c0392b}
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  th,td{text-align:left;padding:11px 13px;font-size:13.5px;border-bottom:1px solid var(--line)}
+  th{background:#fafbfc;color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+  tr:last-child td{border-bottom:none}
+  tr.clickable{cursor:pointer} tr.clickable:hover{background:#f6fbfa}
+  .pill{display:inline-block;padding:2px 9px;border-radius:12px;font-size:11px;font-weight:700;text-transform:capitalize}
+  .pill.new{background:#e8f0fe;color:#1a56db}.pill.qualified{background:#e6f6ec;color:#1a7f37}
+  .pill.booked{background:#e9f9f1;color:#0a7d54}.pill.appointment_requested{background:#fff4e5;color:#b25e09}
+  .pill.human_handoff,.pill.waiting_human{background:#fdeaea;color:#c0392b}.pill.contacted{background:#eef2f6;color:#475569}
+  .pill.lost{background:#f1f1f1;color:#777}.pill.active{background:#e6f6ec;color:#1a7f37}
+  .pill.resolved{background:#eef2f6;color:#475569}.pill.upcoming{background:#e8f0fe;color:#1a56db}
+  .pill.completed{background:#e9f9f1;color:#0a7d54}.pill.cancelled{background:#f1f1f1;color:#777}
+  .split{display:grid;grid-template-columns:340px 1fr;gap:16px}
+  .list{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;max-height:640px;overflow-y:auto}
+  .conv{padding:12px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+  .conv:hover{background:#f6fbfa}.conv.sel{background:#eafaf5}
+  .conv .top{display:flex;justify-content:space-between;align-items:center}
+  .conv .nm{font-weight:600;font-size:14px}
+  .conv .pv{color:var(--muted);font-size:12.5px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .detail{background:#fff;border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;min-height:640px}
+  .detail .dhead{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+  .thread{flex:1;padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;background:#f7faf9;max-height:420px}
+  .b{max-width:75%;padding:8px 11px;border-radius:9px;font-size:13.5px;white-space:pre-wrap;line-height:1.35}
+  .b.cust{align-self:flex-start;background:#fff;border:1px solid #e6ebf1}
+  .b.ai{align-self:flex-end;background:#dcf8c6}
+  .b.human{align-self:flex-end;background:#d0e8ff}
+  .b.system{align-self:center;background:#fff2d6;color:#7a5b00;font-size:12px}
+  .b .tag{font-size:10px;font-weight:700;text-transform:uppercase;opacity:.7;display:block;margin-bottom:2px}
+  .b .tm{font-size:10px;color:var(--muted);display:block;text-align:right;margin-top:3px}
+  .controls{padding:12px 16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
+  .btnrow{display:flex;gap:8px;flex-wrap:wrap}
+  button{font-family:inherit}
+  .btn{padding:7px 12px;border:1px solid var(--line);background:#fff;border-radius:8px;cursor:pointer;font-size:13px}
+  .btn.primary{background:var(--teal);color:#fff;border-color:var(--teal)}
+  .btn.warn{background:#fff5f5;color:#c0392b;border-color:#f3c9c9}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .replyrow{display:flex;gap:8px}
+  .replyrow input{flex:1;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:13.5px}
+  .info{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);padding:0 2px}
+  .info b{color:var(--ink)}
+  .empty{padding:40px;text-align:center;color:var(--muted)}
+  select{padding:6px 8px;border:1px solid var(--line);border-radius:8px;font-size:13px}
+  .muted{color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body>
+  <header>
+    <div class="brand"><div class="avatar">CF</div> CoolFix Services — Operator Dashboard</div>
+    <a href="/" target="_blank">Open WhatsApp simulator ↗</a>
+  </header>
+  <div class="tabs" id="tabs"></div>
+  <main id="main"></main>
+
+<script>
+const TABS=['Overview','Conversations','Customers','Leads','Appointments'];
+let active='Overview', selectedConv=null, pollTimer=null;
+
+function el(id){return document.getElementById(id)}
+function pill(s){return `<span class="pill ${s||''}">${(s||'—').replace(/_/g,' ')}</span>`}
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function tm(s){return s? new Date(s).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):''}
+async function api(path,opts){const r=await fetch(path,opts);if(!r.ok)throw new Error(r.status);return r.json()}
+
+function renderTabs(){
+  const t=el('tabs'); t.innerHTML='';
+  TABS.forEach(name=>{
+    const d=document.createElement('div'); d.className='tab'+(name===active?' active':''); d.textContent=name;
+    d.onclick=()=>{active=name;selectedConv=null;render();};
+    t.appendChild(d);
+  });
+}
+
+async function render(){
+  renderTabs();
+  if(active==='Overview') return renderOverview();
+  if(active==='Conversations') return renderConversations();
+  if(active==='Customers') return renderCustomers();
+  if(active==='Leads') return renderLeads();
+  if(active==='Appointments') return renderAppointments();
+}
+
+async function renderOverview(){
+  const a=await api('/api/analytics');
+  el('main').innerHTML=`
+    <div class="cards">
+      ${stat(a.conversations,'Conversations')}
+      ${stat(a.messages,'Messages')}
+      ${stat(a.leads,'Leads generated')}
+      ${stat(a.qualified_leads,'Leads qualified')}
+      ${stat(a.appointments_booked,'Appointments booked')}
+      ${stat(a.human_handoffs,'Human handoffs', a.human_handoffs>0)}
+      ${stat(a.waiting_for_human,'Waiting for human', a.waiting_for_human>0)}
+      ${stat(a.conversion_rate+'%','Conversion rate')}
+    </div>
+    <p class="muted">Conversion rate = appointments booked ÷ conversations. Numbers update live as you chat in the simulator.</p>`;
+}
+function stat(n,l,alert){return `<div class="stat ${alert?'alert':''}"><div class="n">${n}</div><div class="l">${l}</div></div>`}
+
+async function renderConversations(){
+  const list=await api('/api/conversations');
+  el('main').innerHTML=`<div class="split">
+    <div class="list" id="convList"></div>
+    <div class="detail" id="convDetail"><div class="empty">Select a conversation to view it and take over.</div></div>
+  </div>`;
+  const cl=el('convList');
+  if(!list.length){cl.innerHTML='<div class="empty">No conversations yet. Chat in the simulator first.</div>';return;}
+  cl.innerHTML='';
+  list.forEach(c=>{
+    const d=document.createElement('div'); d.className='conv'+(selectedConv===c.id?' sel':'');
+    d.innerHTML=`<div class="top"><span class="nm">${esc(c.customer_name||c.wa_number)}</span>${pill(c.status)}</div>
+      <div class="pv">${esc((c.last_message||'').slice(0,60))}</div>
+      <div class="muted" style="margin-top:3px">${c.wa_number} • ${c.message_count} msgs • ${tm(c.last_at)}</div>`;
+    d.onclick=()=>openConv(c.id);
+    cl.appendChild(d);
+  });
+  if(selectedConv) openConv(selectedConv,true);
+}
+
+async function openConv(id,keep){
+  selectedConv=id;
+  if(!keep) document.querySelectorAll('.conv').forEach(x=>x.classList.remove('sel'));
+  const d=await api('/api/conversations/'+id);
+  const c=d.conversation, cu=d.customer, lead=d.lead;
+  const paused = c.mode==='human';
+  const thread = d.messages.map(m=>{
+    let cls = m.origin==='customer'?'cust':(m.origin==='human'?'human':(m.origin==='system'?'system':'ai'));
+    let tag = m.origin==='customer'?'Customer':(m.origin==='human'?'Operator':(m.origin==='ai'?'CoolFix AI':'System'));
+    return `<div class="b ${cls}"><span class="tag">${tag}</span>${esc(m.content)}<span class="tm">${tm(m.created_at)} ${m.status&&m.origin!=='customer'?'• '+m.status:''}</span></div>`;
+  }).join('');
+  const appt = d.appointments[0];
+  el('convDetail').innerHTML=`
+    <div class="dhead">
+      <div><b>${esc(cu.name||cu.wa_number)}</b> <span class="muted">${cu.wa_number}</span><br>
+        <span class="info">Status ${pill(c.status)} • Mode ${pill(paused?'human':'active')} ${lead?'• Lead '+pill(lead.status):''}</span></div>
+      <div class="muted">${cu.location?('📍 '+esc(cu.location)):''}</div>
+    </div>
+    <div class="thread" id="thread">${thread||'<div class="empty">No messages.</div>'}</div>
+    <div class="controls">
+      <div class="info">
+        ${lead? `Service: <b>${(lead.service||'—').replace(/_/g,' ')}</b> · Time: <b>${esc(lead.preferred_time||'—')}</b>`:''}
+        ${appt? ` · Appt: <b>${esc(appt.scheduled_for)} ${esc(appt.slot||'')}</b> ${pill(appt.status)}`:''}
+      </div>
+      <div class="btnrow">
+        ${paused? `<button class="btn primary" onclick="act(${id},'resume')">▶ Resume AI</button>`
+                : `<button class="btn warn" onclick="act(${id},'pause')">⏸ Pause AI (take over)</button>`}
+        <button class="btn" onclick="act(${id},'close')">✓ Close conversation</button>
+        ${lead? `<select id="leadSel" onchange="setLead(${lead.id})">
+           ${['new','contacted','qualified','appointment_requested','booked','completed','lost','human_handoff']
+             .map(s=>`<option ${s===lead.status?'selected':''}>${s}</option>`).join('')}
+        </select>`:''}
+      </div>
+      <div class="replyrow">
+        <input id="opReply" placeholder="${paused?'Reply as operator…':'Pause AI or just send — sending takes over'}"
+               onkeydown="if(event.key==='Enter')sendReply(${id})">
+        <button class="btn primary" onclick="sendReply(${id})">Send</button>
+      </div>
+    </div>`;
+  const th=el('thread'); if(th) th.scrollTop=th.scrollHeight;
+}
+
+async function act(id,what){ await api(`/api/conversations/${id}/${what}`,{method:'POST'}); openConv(id,true); if(active==='Conversations')renderConversations(); }
+async function sendReply(id){
+  const inp=el('opReply'); const text=inp.value.trim(); if(!text)return; inp.value='';
+  await api(`/api/conversations/${id}/reply`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
+  openConv(id,true);
+}
+async function setLead(leadId){
+  const v=el('leadSel').value;
+  await api(`/api/leads/${leadId}/status`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:v})});
+  openConv(selectedConv,true);
+}
+
+async function renderCustomers(){
+  const rows=await api('/api/customers');
+  el('main').innerHTML=table(['Name','WhatsApp','Location','Lead status','Last conversation'],
+    rows.map(c=>[esc(c.name||'—'),c.wa_number,esc(c.location||'—'),pill(c.lead_status),tm(c.last_conversation)]),
+    'No customers yet.');
+}
+async function renderLeads(){
+  const rows=await api('/api/leads');
+  el('main').innerHTML=table(['Customer','WhatsApp','Service','Location','Preferred time','Status'],
+    rows.map(l=>[esc(l.customer_name||'—'),l.wa_number,(l.service||'—').replace(/_/g,' '),esc(l.location||'—'),esc(l.preferred_time||'—'),pill(l.status)]),
+    'No leads yet.');
+}
+async function renderAppointments(){
+  const rows=await api('/api/appointments');
+  el('main').innerHTML=table(['Customer','WhatsApp','Service','When','Slot','Status'],
+    rows.map(a=>[esc(a.customer_name||'—'),a.wa_number,(a.service||'—').replace(/_/g,' '),esc(a.scheduled_for||'—'),esc(a.slot||'—'),pill(a.status)]),
+    'No appointments yet.');
+}
+function table(cols,rows,emptyMsg){
+  if(!rows.length)return `<div class="empty">${emptyMsg}</div>`;
+  return `<table><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+}
+
+renderTabs(); render();
+setInterval(()=>{ if(active==='Overview')renderOverview();
+  else if(active==='Conversations'){ if(selectedConv)openConv(selectedConv,true); } }, 4000);
+</script>
+</body>
+</html>

@@ -1,0 +1,97 @@
+{
+  "name": "CoolFix - WhatsApp (attach to live app)",
+  "nodes": [
+    {
+      "parameters": { "updates": ["messages"] },
+      "id": "node-wa-trigger",
+      "name": "WhatsApp Trigger",
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [-40, 300],
+      "webhookId": "coolfix-wa-attach"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalise the WhatsApp Trigger payload to { wa_number, text, name }.\nconst out = [];\nfor (const item of $input.all()) {\n  const j = item.json;\n  // The trigger may emit a simplified message or the raw Meta value object.\n  const messages = j.messages || (j.value && j.value.messages) || [];\n  const contacts = j.contacts || (j.value && j.value.contacts) || [];\n  const nameByWa = {};\n  for (const c of contacts) nameByWa[c.wa_id] = (c.profile || {}).name;\n  if (messages.length) {\n    for (const m of messages) {\n      if (m.type && m.type !== 'text') continue;\n      out.push({ json: { wa_number: m.from, text: (m.text && m.text.body) || m.body || '', name: nameByWa[m.from] || null } });\n    }\n  } else if (j.from && (j.text || j.body)) {\n    out.push({ json: { wa_number: j.from, text: (j.text && j.text.body) || j.body || '', name: j.name || null } });\n  }\n}\nreturn out.length ? out : [{ json: { skip: true } }];"
+      },
+      "id": "node-extract",
+      "name": "Extract Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR-APP-URL.onrender.com/api/inbound",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer YOUR_DASHBOARD_TOKEN" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"wa_number\": {{ JSON.stringify($json.wa_number) }},\n  \"text\": {{ JSON.stringify($json.text) }},\n  \"name\": {{ JSON.stringify($json.name) }},\n  \"deliver\": false\n}",
+        "options": {}
+      },
+      "id": "node-ask-app",
+      "name": "Ask the App (understand + store)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "typeValidation": "loose" },
+          "conditions": [
+            { "leftValue": "={{ $json.reply }}", "rightValue": "", "operator": { "type": "string", "operation": "notEmpty" } }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-if",
+      "name": "Reply to send?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "YOUR_PHONE_NUMBER_ID",
+        "recipientPhoneNumber": "={{ $('Extract Message').item.json.wa_number }}",
+        "textBody": "={{ $json.reply }}",
+        "additionalFields": {}
+      },
+      "id": "node-wa-send",
+      "name": "Send WhatsApp Reply",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [940, 200]
+    },
+    {
+      "parameters": {
+        "content": "## Attach WhatsApp to the live CoolFix app\nThe app stays running and unchanged; this flow just bolts WhatsApp onto it.\n\n1. **WhatsApp Trigger** receives the customer message (n8n hosts the public webhook - no ngrok).\n2. **Extract Message** pulls out `wa_number` + `text`.\n3. **Ask the App** POSTs to your deployed app's `/api/inbound` - it understands the message, updates the dashboard/DB, and returns the `reply`.\n4. **Reply to send?** skips empty replies (e.g. when a human has taken over in the dashboard).\n5. **Send WhatsApp Reply** sends the app's reply back via WhatsApp Business Cloud.\n\n### Fill these in\n- **Ask the App** node: set the URL to `https://<your-app>/api/inbound` and the `Bearer` header to your app's `DASHBOARD_TOKEN` (or remove the header if you left it blank).\n- **WhatsApp Trigger** + **Send WhatsApp Reply**: select your WhatsApp credentials and set the Phone Number ID (same Meta app as the app's webhook - or point Meta's webhook at THIS trigger instead of the app).",
+        "height": 360,
+        "width": 460
+      },
+      "id": "node-note",
+      "name": "Docs",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-40, -140]
+    }
+  ],
+  "connections": {
+    "WhatsApp Trigger": { "main": [[{ "node": "Extract Message", "type": "main", "index": 0 }]] },
+    "Extract Message": { "main": [[{ "node": "Ask the App (understand + store)", "type": "main", "index": 0 }]] },
+    "Ask the App (understand + store)": { "main": [[{ "node": "Reply to send?", "type": "main", "index": 0 }]] },
+    "Reply to send?": { "main": [[{ "node": "Send WhatsApp Reply", "type": "main", "index": 0 }], []] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "whatsapp" }, { "name": "coolfix" }]
+}

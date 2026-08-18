@@ -1,0 +1,127 @@
+{
+  "name": "CoolFix - WhatsApp Follow-ups",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [ { "field": "hours", "hoursInterval": 1 } ] }
+      },
+      "id": "node-schedule",
+      "name": "Every hour",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-40, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "a1", "name": "baseUrl", "value": "https://YOUR-NGROK-SUBDOMAIN.ngrok-free.app", "type": "string" },
+            { "id": "a2", "name": "authToken", "value": "", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-config",
+      "name": "Config (edit me)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [180, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.baseUrl }}/api/followups",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $json.authToken }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-get",
+      "name": "Get Due Follow-ups",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [400, 300]
+    },
+    {
+      "parameters": { "fieldToSplitOut": "stale_leads", "options": {} },
+      "id": "node-split-leads",
+      "name": "Split: Stale Leads",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [640, 180]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $node[\"Config (edit me)\"].json.baseUrl }}/api/leads/{{ $json.id }}/followup",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $node[\"Config (edit me)\"].json.authToken }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-send-lead",
+      "name": "Send Lead Nudge",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 180]
+    },
+    {
+      "parameters": { "fieldToSplitOut": "upcoming_appointments", "options": {} },
+      "id": "node-split-appts",
+      "name": "Split: Upcoming Appointments",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [640, 420]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $node[\"Config (edit me)\"].json.baseUrl }}/api/appointments/{{ $json.id }}/remind",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $node[\"Config (edit me)\"].json.authToken }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-send-remind",
+      "name": "Send Appointment Reminder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 420]
+    },
+    {
+      "parameters": {
+        "content": "## CoolFix Follow-up Automations\nRuns hourly. Pulls items that need a nudge from the app and sends them over WhatsApp.\n\n**Setup (2 fields):** open **Config (edit me)** and set:\n- `baseUrl` = your public app URL (the ngrok HTTPS URL)\n- `authToken` = the value of `DASHBOARD_TOKEN` in the app's .env (leave blank if you didn't set one)\n\nThe app makes each action idempotent (a lead is nudged once, an appointment reminded once), so it's safe to run on a schedule.\n\nExtend it: add a 'review request' branch that hits `/api/appointments/{id}/remind`-style endpoints after a job is marked completed.",
+        "height": 300,
+        "width": 420
+      },
+      "id": "node-note",
+      "name": "Docs",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-40, -60]
+    }
+  ],
+  "connections": {
+    "Every hour": { "main": [[{ "node": "Config (edit me)", "type": "main", "index": 0 }]] },
+    "Config (edit me)": { "main": [[{ "node": "Get Due Follow-ups", "type": "main", "index": 0 }]] },
+    "Get Due Follow-ups": {
+      "main": [[
+        { "node": "Split: Stale Leads", "type": "main", "index": 0 },
+        { "node": "Split: Upcoming Appointments", "type": "main", "index": 0 }
+      ]]
+    },
+    "Split: Stale Leads": { "main": [[{ "node": "Send Lead Nudge", "type": "main", "index": 0 }]] },
+    "Split: Upcoming Appointments": { "main": [[{ "node": "Send Appointment Reminder", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "whatsapp" }, { "name": "coolfix" }, { "name": "followups" }]
+}

@@ -1,0 +1,35 @@
+# Render Blueprint - deploys the CoolFix app as an always-on web service.
+# Import: Render Dashboard -> New -> Blueprint -> connect this repo.
+services:
+  - type: web
+    name: coolfix-whatsapp
+    runtime: docker
+    # "starter" keeps the app always-on (no cold starts) and allows a persistent
+    # disk so your data survives restarts. For free testing, change to "free" and
+    # remove the "disk:" block below (data then resets on each deploy/spin-down).
+    plan: starter
+    healthCheckPath: /api/health
+    envVars:
+      - key: AI_PROVIDER
+        value: mock            # set to "openai" and add OPENAI_API_KEY to go live
+      - key: WHATSAPP_PROVIDER
+        value: mock            # n8n does the sending; app stays mock (no double-send)
+      - key: META_VERIFY_TOKEN
+        value: coolfix-verify-token
+      - key: DB_PATH
+        value: /data/coolfix.db
+      # Secrets - set these in the Render dashboard (never commit them):
+      - key: DASHBOARD_TOKEN
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: META_ACCESS_TOKEN
+        sync: false
+      - key: META_PHONE_NUMBER_ID
+        sync: false
+      - key: META_APP_SECRET
+        sync: false
+    disk:
+      name: coolfix-data
+      mountPath: /data
+      sizeGB: 1
