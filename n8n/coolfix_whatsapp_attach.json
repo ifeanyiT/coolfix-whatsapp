@@ -12,7 +12,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Normalise the WhatsApp Trigger payload to { wa_number, text, name }.\nconst out = [];\nfor (const item of $input.all()) {\n  const j = item.json;\n  // The trigger may emit a simplified message or the raw Meta value object.\n  const messages = j.messages || (j.value && j.value.messages) || [];\n  const contacts = j.contacts || (j.value && j.value.contacts) || [];\n  const nameByWa = {};\n  for (const c of contacts) nameByWa[c.wa_id] = (c.profile || {}).name;\n  if (messages.length) {\n    for (const m of messages) {\n      if (m.type && m.type !== 'text') continue;\n      out.push({ json: { wa_number: m.from, text: (m.text && m.text.body) || m.body || '', name: nameByWa[m.from] || null } });\n    }\n  } else if (j.from && (j.text || j.body)) {\n    out.push({ json: { wa_number: j.from, text: (j.text && j.text.body) || j.body || '', name: j.name || null } });\n  }\n}\nreturn out.length ? out : [{ json: { skip: true } }];"
+        "jsCode": "// Normalise the WhatsApp Trigger payload to { wa_number, text, name }.\nconst out = [];\nfor (const item of $input.all()) {\n  const j = item.json;\n  // The trigger may emit a simplified message or the raw Meta value object.\n  const messages = j.messages || (j.value && j.value.messages) || [];\n  const contacts = j.contacts || (j.value && j.value.contacts) || [];\n  const nameByWa = {};\n  for (const c of contacts) nameByWa[c.wa_id] = (c.profile || {}).name;\n  if (messages.length) {\n    for (const m of messages) {\n      if (m.type && m.type !== 'text') continue;\n      out.push({ json: { wa_number: m.from, text: (m.text && m.text.body) || m.body || '', name: nameByWa[m.from] || null } });\n    }\n  } else if (j.from && (j.text || j.body)) {\n    out.push({ json: { wa_number: j.from, text: (j.text && j.text.body) || j.body || '', name: j.name || null } });\n  }\n}\nreturn out; // empty array => status/non-text events stop here (no call to the app)"
       },
       "id": "node-extract",
       "name": "Extract Message",
@@ -32,7 +32,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"wa_number\": {{ JSON.stringify($json.wa_number) }},\n  \"text\": {{ JSON.stringify($json.text) }},\n  \"name\": {{ JSON.stringify($json.name) }},\n  \"deliver\": false\n}",
+        "jsonBody": "={{ JSON.stringify({ wa_number: $json.wa_number, text: $json.text, name: $json.name, deliver: false }) }}",
         "options": {}
       },
       "id": "node-ask-app",
