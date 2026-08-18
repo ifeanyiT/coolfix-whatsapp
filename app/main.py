@@ -67,6 +67,12 @@ class LeadStatusIn(BaseModel):
 # ------------------------------------------------------------------ pages
 @app.get("/", include_in_schema=False)
 def index():
+    return FileResponse(WEB_DIR / "landing.html")
+
+
+@app.get("/demo", include_in_schema=False)
+def demo_page():
+    # The raw two-panel simulator (with the developer intent/state panel).
     return FileResponse(WEB_DIR / "simulator.html")
 
 

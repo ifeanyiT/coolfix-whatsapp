@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Replyo — Your AI employee for WhatsApp</title>
+<meta name="description" content="Replyo answers questions, captures leads and books appointments on WhatsApp automatically — using your business's real info, 24/7.">
+<style>
+  :root{
+    --brand:#0e8f7e; --brand-dark:#0a6b5e; --accent:#25d366;
+    --ink:#0b1a24; --slate:#51636f; --line:#e6ecef; --soft:#f4f8f7; --white:#fff;
+    --dark:#07131a; --radius:16px; --shadow:0 10px 40px rgba(10,40,35,.10);
+    --shadow-sm:0 4px 18px rgba(10,40,35,.08);
+    --max:1160px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+        color:var(--ink);background:var(--white);line-height:1.55;-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:var(--max);margin:0 auto;padding:0 24px}
+  .btn{display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;font-size:15px;
+       font-weight:600;padding:12px 20px;border-radius:12px;transition:.15s;font-family:inherit}
+  .btn.primary{background:var(--brand);color:#fff}
+  .btn.primary:hover{background:var(--brand-dark);transform:translateY(-1px)}
+  .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .btn.ghost:hover{border-color:var(--brand);color:var(--brand)}
+  .btn.big{padding:15px 26px;font-size:16px;border-radius:14px}
+  .eyebrow{color:var(--brand);font-weight:700;font-size:13px;letter-spacing:.6px;text-transform:uppercase}
+  section{padding:88px 0}
+  h2.title{font-size:clamp(28px,4vw,40px);line-height:1.15;letter-spacing:-.5px;margin:10px 0 14px}
+  p.lead{color:var(--slate);font-size:18px;max-width:640px}
+
+  /* NAV */
+  header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.85);backdrop-filter:blur(10px);
+         border-bottom:1px solid var(--line)}
+  nav{display:flex;align-items:center;justify-content:space-between;height:66px}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;letter-spacing:-.3px}
+  .logo .mark{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--brand),var(--accent));
+              display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px}
+  .navlinks{display:flex;gap:28px;align-items:center}
+  .navlinks a{color:var(--slate);font-weight:500;font-size:15px}
+  .navlinks a:hover{color:var(--ink)}
+  .navcta{display:flex;gap:10px;align-items:center}
+  @media(max-width:820px){.navlinks{display:none}}
+
+  /* HERO */
+  .hero{background:radial-gradient(1200px 500px at 70% -10%,#e7f7f2 0,#fff 60%);padding-top:64px}
+  .hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:52px;align-items:center}
+  .hero h1{font-size:clamp(34px,5vw,54px);line-height:1.08;letter-spacing:-1.2px;font-weight:800}
+  .hero h1 .hl{background:linear-gradient(120deg,var(--brand),var(--accent));-webkit-background-clip:text;
+               background-clip:text;color:transparent}
+  .hero p{margin:20px 0 28px;font-size:19px;color:var(--slate);max-width:520px}
+  .hero .cta{display:flex;gap:12px;flex-wrap:wrap}
+  .trust{margin-top:26px;display:flex;gap:18px;flex-wrap:wrap;color:var(--slate);font-size:14px}
+  .trust span{display:flex;align-items:center;gap:7px}
+  .trust b{color:var(--brand)}
+  @media(max-width:900px){.hero-grid{grid-template-columns:1fr;gap:36px}}
+
+  /* PHONE MOCKUP */
+  .phone{width:320px;max-width:100%;margin:0 auto;background:#0b141a;border-radius:34px;padding:12px;
+         box-shadow:0 30px 70px rgba(6,30,26,.28);position:relative}
+  .phone .notch{position:absolute;top:20px;left:50%;transform:translateX(-50%);width:120px;height:22px;
+                background:#0b141a;border-radius:0 0 14px 14px;z-index:3}
+  .screen{background:#e5ddd5;border-radius:24px;overflow:hidden;height:560px;display:flex;flex-direction:column}
+  .wa-top{background:var(--brand-dark);color:#fff;padding:14px 14px 12px;display:flex;gap:11px;align-items:center}
+  .wa-top .av{width:38px;height:38px;border-radius:50%;background:#0e8f7e;display:flex;align-items:center;
+              justify-content:center;font-weight:700;font-size:15px}
+  .wa-top .nm{font-weight:600;font-size:15px;line-height:1.1}
+  .wa-top .st{font-size:11.5px;opacity:.85}
+  .msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:9px;
+        background-image:linear-gradient(rgba(229,221,213,.55),rgba(229,221,213,.55))}
+  .bub{max-width:82%;padding:8px 11px;border-radius:9px;font-size:14px;line-height:1.4;
+       box-shadow:0 1px .5px rgba(0,0,0,.08);white-space:pre-wrap}
+  .bub.in{align-self:flex-start;background:#fff;border-top-left-radius:2px}
+  .bub.out{align-self:flex-end;background:#dcf8c6;border-top-right-radius:2px}
+  .bub .t{display:block;font-size:9.5px;color:#8a97a0;text-align:right;margin-top:3px}
+  .bub .who{display:block;font-size:9.5px;font-weight:700;color:var(--brand);margin-bottom:1px}
+  .typing{align-self:flex-start;color:#8a97a0;font-size:12px;font-style:italic;padding:2px 4px}
+  .wa-in{display:flex;gap:8px;padding:9px;background:#f0f0f0}
+  .wa-in input{flex:1;border:none;border-radius:20px;padding:10px 14px;font-size:14px;outline:none}
+  .wa-in button{background:var(--accent);border:none;color:#fff;width:42px;border-radius:50%;
+                font-size:17px;cursor:pointer}
+  .wa-in button:active{transform:scale(.94)}
+
+  /* LOGOS / STRIP */
+  .strip{background:var(--soft);padding:26px 0}
+  .strip .row{display:flex;gap:34px;justify-content:center;flex-wrap:wrap;color:#8595a0;
+              font-weight:700;font-size:15px;letter-spacing:.3px}
+
+  /* FEATURES */
+  .center{text-align:center;max-width:680px;margin:0 auto 52px}
+  .center p.lead{margin:0 auto}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  @media(max-width:860px){.grid3{grid-template-columns:1fr 1fr}}
+  @media(max-width:560px){.grid3{grid-template-columns:1fr}}
+  .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:26px;
+        transition:.15s;box-shadow:var(--shadow-sm)}
+  .card:hover{transform:translateY(-3px);border-color:#d4e6e1}
+  .card .ic{width:46px;height:46px;border-radius:12px;background:var(--soft);display:flex;align-items:center;
+            justify-content:center;font-size:22px;margin-bottom:14px}
+  .card h3{font-size:18px;margin-bottom:7px}
+  .card p{color:var(--slate);font-size:15px}
+
+  /* HOW */
+  .how{background:var(--soft)}
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;counter-reset:s}
+  @media(max-width:760px){.steps{grid-template-columns:1fr}}
+  .step{background:#fff;border-radius:var(--radius);padding:26px;border:1px solid var(--line);position:relative}
+  .step .n{width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;font-weight:700;
+           display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+  .step h3{font-size:18px;margin-bottom:7px}
+  .step p{color:var(--slate);font-size:15px}
+
+  /* DEMO */
+  .demo-grid{display:grid;grid-template-columns:1fr 340px;gap:52px;align-items:center}
+  @media(max-width:900px){.demo-grid{grid-template-columns:1fr;gap:36px}}
+  .demo-copy ul{list-style:none;margin:22px 0}
+  .demo-copy li{display:flex;gap:11px;align-items:flex-start;margin-bottom:13px;color:var(--slate);font-size:16px}
+  .demo-copy li b{color:var(--ink)}
+  .tick{color:var(--accent);font-weight:800;flex:none}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+  .chip{background:#fff;border:1px solid var(--line);border-radius:16px;padding:7px 13px;font-size:13px;
+        cursor:pointer;color:var(--ink)}
+  .chip:hover{border-color:var(--brand);color:var(--brand)}
+
+  /* PRICING */
+  .price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;align-items:stretch}
+  @media(max-width:800px){.price-grid{grid-template-columns:1fr}}
+  .plan{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:30px;display:flex;
+        flex-direction:column}
+  .plan.pop{border:2px solid var(--brand);box-shadow:var(--shadow);position:relative}
+  .plan.pop .tag{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--brand);
+                 color:#fff;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px}
+  .plan h3{font-size:19px}
+  .plan .amt{font-size:38px;font-weight:800;margin:10px 0 2px;letter-spacing:-1px}
+  .plan .amt small{font-size:15px;font-weight:600;color:var(--slate)}
+  .plan .desc{color:var(--slate);font-size:14px;margin-bottom:18px}
+  .plan ul{list-style:none;margin:0 0 22px}
+  .plan li{padding:7px 0;font-size:14.5px;color:var(--ink);display:flex;gap:9px}
+  .plan li::before{content:"✓";color:var(--accent);font-weight:800}
+  .plan .btn{margin-top:auto;justify-content:center}
+
+  /* DASHBOARD PREVIEW */
+  .dashwrap{background:linear-gradient(180deg,#fff,var(--soft));border:1px solid var(--line);
+            border-radius:20px;padding:14px;box-shadow:var(--shadow)}
+  .dashbar{display:flex;gap:6px;padding:8px 10px}
+  .dashbar i{width:11px;height:11px;border-radius:50%;background:#e0e6e9;display:block}
+  .dashimg{width:100%;border-radius:12px;border:1px solid var(--line);display:block}
+  .stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:10px}
+  .mini{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
+  .mini .n{font-size:24px;font-weight:800}
+  .mini .l{color:var(--slate);font-size:12.5px;margin-top:2px}
+
+  /* CTA BAND */
+  .band{background:linear-gradient(135deg,var(--brand-dark),var(--brand));color:#fff;border-radius:24px;
+        padding:52px;text-align:center}
+  .band h2{font-size:clamp(26px,4vw,38px);letter-spacing:-.5px}
+  .band p{opacity:.9;font-size:18px;margin:12px auto 26px;max-width:560px}
+  .band .btn.primary{background:#fff;color:var(--brand-dark)}
+  .band .btn.primary:hover{background:#eafaf5}
+  .band .btn.ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.5)}
+
+  /* FOOTER */
+  footer{border-top:1px solid var(--line);padding:40px 0;color:var(--slate);font-size:14px}
+  .foot{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}
+  .foot .logo{font-size:17px;color:var(--ink)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap"><nav>
+    <a class="logo" href="#top"><span class="mark">⚡</span> Replyo</a>
+    <div class="navlinks">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#demo">Live demo</a>
+      <a href="#pricing">Pricing</a>
+    </div>
+    <div class="navcta">
+      <a class="btn ghost" href="/dashboard" target="_blank">Dashboard</a>
+      <a class="btn primary" href="#demo">Try it live</a>
+    </div>
+  </nav></div>
+</header>
+
+<a id="top"></a>
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow">AI customer service for WhatsApp</span>
+      <h1>Your AI employee that <span class="hl">never sleeps</span> on WhatsApp</h1>
+      <p>Replyo replies to every customer instantly — answering questions, capturing leads
+         and booking appointments using <b>your</b> business info. It knows when to hand the
+         chat to a human, and shows you everything in one dashboard.</p>
+      <div class="cta">
+        <a class="btn primary big" href="#demo">Try the live demo →</a>
+        <a class="btn ghost big" href="#how">See how it works</a>
+      </div>
+      <div class="trust">
+        <span>💬 Works with <b>WhatsApp Business</b></span>
+        <span>⚡ Replies in <b>seconds, 24/7</b></span>
+        <span>🔒 Never makes up info</span>
+      </div>
+    </div>
+
+    <div class="phone" id="heroPhone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="wa-top">
+          <div class="av">CF</div>
+          <div><div class="nm">CoolFix Services</div><div class="st">online • AI assistant</div></div>
+        </div>
+        <div class="msgs" id="heroMsgs">
+          <div class="bub out">Hi, how much is AC servicing?<span class="t">09:41</span></div>
+          <div class="bub in"><span class="who">CoolFix AI</span>AC servicing is ₦7,500 per unit. Would you like to book?<span class="t">09:41</span></div>
+          <div class="bub out">Yes, I'm in Lekki, tomorrow afternoon<span class="t">09:41</span></div>
+          <div class="bub in"><span class="who">CoolFix AI</span>✅ Booked! AC servicing in Lekki, tomorrow afternoon. We'll send a reminder.<span class="t">09:42</span></div>
+        </div>
+        <div class="wa-in"><input disabled placeholder="Type a message"><button>➤</button></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="strip"><div class="wrap"><div class="row">
+  <span>🛠 Home services</span><span>🍽 Restaurants</span><span>🛒 Retail & e‑commerce</span>
+  <span>💇 Salons & spas</span><span>🏥 Clinics</span><span>🏠 Real estate</span>
+</div></div></div>
+
+<section id="features">
+  <div class="wrap">
+    <div class="center">
+      <span class="eyebrow">Why Replyo</span>
+      <h2 class="title">Everything a great front-desk does — automatically</h2>
+      <p class="lead">Your customers already message on WhatsApp. Replyo makes sure every one of
+        them gets an instant, accurate, helpful reply.</p>
+    </div>
+    <div class="grid3">
+      <div class="card"><div class="ic">⚡</div><h3>Instant replies, 24/7</h3>
+        <p>No more missed messages or “we’ll get back to you.” Every customer is answered in seconds, day or night.</p></div>
+      <div class="card"><div class="ic">📚</div><h3>Uses your real info</h3>
+        <p>Prices, hours, services, service areas — Replyo answers only from what you set. It never invents details.</p></div>
+      <div class="card"><div class="ic">🎯</div><h3>Captures & qualifies leads</h3>
+        <p>It spots buying intent, collects the details that matter, and turns everyday chats into real customers.</p></div>
+      <div class="card"><div class="ic">📅</div><h3>Books appointments</h3>
+        <p>Collects the service, location and time, checks your availability, and confirms the booking — hands-free.</p></div>
+      <div class="card"><div class="ic">🤝</div><h3>Knows when to call you</h3>
+        <p>Complaints, emergencies or “I want a human” are escalated to you instantly, so nothing sensitive is fumbled.</p></div>
+      <div class="card"><div class="ic">📊</div><h3>One clear dashboard</h3>
+        <p>Every conversation, customer, lead and booking in one place — and you can jump in and reply as a human anytime.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="how" class="how">
+  <div class="wrap">
+    <div class="center"><span class="eyebrow">How it works</span>
+      <h2 class="title">Live in a day. No code.</h2>
+      <p class="lead">Connect your WhatsApp, add your business details, and Replyo starts working.</p>
+    </div>
+    <div class="steps">
+      <div class="step"><div class="n">1</div><h3>Customer messages you</h3>
+        <p>A customer sends a WhatsApp message to your business number — a question, a request, anything.</p></div>
+      <div class="step"><div class="n">2</div><h3>Replyo understands & responds</h3>
+        <p>It works out what they want, answers using your info, collects details and books or escalates as needed.</p></div>
+      <div class="step"><div class="n">3</div><h3>You stay in control</h3>
+        <p>Watch every chat in your dashboard, take over whenever you like, and let follow-ups win back sales automatically.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="demo">
+  <div class="wrap">
+    <div class="center"><span class="eyebrow">See it for yourself</span>
+      <h2 class="title">Chat with a real Replyo assistant</h2>
+      <p class="lead">This is a live AI assistant for a sample business, <b>CoolFix Services</b>
+        (AC, electrical & generators). Ask a question or try booking — it really works.</p>
+    </div>
+    <div class="demo-grid">
+      <div class="demo-copy">
+        <h3 style="font-size:22px;margin-bottom:6px">Try these 👇</h3>
+        <div class="chips" id="chips"></div>
+        <ul>
+          <li><span class="tick">✓</span><span>Ask <b>“How much is AC servicing?”</b> — it quotes the real price.</span></li>
+          <li><span class="tick">✓</span><span>Say <b>“I want to book an AC repair”</b>, then <b>“I'm in Lekki”</b>, then <b>“tomorrow afternoon”</b> — watch it book.</span></li>
+          <li><span class="tick">✓</span><span>Try <b>“I want to speak to someone”</b> — it hands off to a human.</span></li>
+        </ul>
+        <p style="color:var(--slate);font-size:14px">Everything you do here shows up in the
+          <a href="/dashboard" target="_blank" style="color:var(--brand);font-weight:600">business dashboard ↗</a>.</p>
+      </div>
+
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen">
+          <div class="wa-top">
+            <div class="av">CF</div>
+            <div><div class="nm">CoolFix Services</div><div class="st" id="liveStatus">online • AI assistant</div></div>
+          </div>
+          <div class="msgs" id="liveMsgs"></div>
+          <div class="wa-in">
+            <input id="liveInput" placeholder="Type a message" autocomplete="off"
+                   onkeydown="if(event.key==='Enter')sendLive()">
+            <button onclick="sendLive()">➤</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="pricing">
+  <div class="wrap">
+    <div class="center"><span class="eyebrow">Pricing</span>
+      <h2 class="title">Simple plans that pay for themselves</h2>
+      <p class="lead">One booked job usually covers the month. Start free, upgrade when you’re ready.</p>
+    </div>
+    <div class="price-grid">
+      <div class="plan"><h3>Starter</h3>
+        <div class="amt">₦0<small>/mo</small></div>
+        <div class="desc">Try Replyo with the built-in demo assistant.</div>
+        <ul><li>Live AI demo</li><li>1 business profile</li><li>Simulator & dashboard</li><li>Community support</li></ul>
+        <a class="btn ghost" href="#demo">Start free</a></div>
+      <div class="plan pop"><span class="tag">Most popular</span><h3>Business</h3>
+        <div class="amt">₦25,000<small>/mo</small></div>
+        <div class="desc">For a real business on WhatsApp.</div>
+        <ul><li>Connect real WhatsApp</li><li>Unlimited conversations</li><li>Leads, bookings & handoff</li><li>Automatic follow-ups</li><li>Email support</li></ul>
+        <a class="btn primary" href="#demo">Get started</a></div>
+      <div class="plan"><h3>Pro</h3>
+        <div class="amt">₦60,000<small>/mo</small></div>
+        <div class="desc">Multiple locations & higher volume.</div>
+        <ul><li>Everything in Business</li><li>Multiple numbers/branches</li><li>Team seats</li><li>Priority support</li><li>Custom integrations</li></ul>
+        <a class="btn ghost" href="#demo">Talk to us</a></div>
+    </div>
+  </div>
+</section>
+
+<section id="dash" class="how">
+  <div class="wrap">
+    <div class="center"><span class="eyebrow">Your control room</span>
+      <h2 class="title">See every chat, lead and booking</h2>
+      <p class="lead">Replyo keeps working in the background — and gives you a live dashboard to
+        watch conversations, jump in as a human, and track results.</p>
+    </div>
+    <div class="dashwrap">
+      <div class="dashbar"><i></i><i></i><i></i></div>
+      <div class="stat-row">
+        <div class="mini"><div class="n">128</div><div class="l">Conversations</div></div>
+        <div class="mini"><div class="n">54</div><div class="l">Leads generated</div></div>
+        <div class="mini"><div class="n">31</div><div class="l">Appointments booked</div></div>
+        <div class="mini"><div class="n">24%</div><div class="l">Conversion rate</div></div>
+      </div>
+      <div style="text-align:center;padding:12px 0 4px">
+        <a class="btn primary big" href="/dashboard" target="_blank">Open the live dashboard →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="band">
+      <h2>Stop losing customers to slow replies</h2>
+      <p>Give every WhatsApp customer an instant, helpful answer — and turn conversations into bookings while you sleep.</p>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <a class="btn primary big" href="#demo">Try the live demo</a>
+        <a class="btn ghost big" href="/dashboard" target="_blank">See the dashboard</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot">
+    <a class="logo" href="#top"><span class="mark" style="width:28px;height:28px;font-size:15px">⚡</span> Replyo</a>
+    <div>Your AI employee for WhatsApp — answers, sells, and books 24/7.</div>
+    <div>© <span id="yr"></span> Replyo. Demo product.</div>
+  </div>
+</footer>
+
+<script>
+document.getElementById('yr').textContent = new Date().getFullYear();
+
+const CHIPS = ["How much is AC servicing?","Do you service Lekki?","I want to book an AC repair",
+               "I'm in Lekki","Tomorrow afternoon","I want to speak to someone"];
+
+// unique visitor number so demos don't collide
+let waNumber = sessionStorage.getItem('replyo_wa');
+if(!waNumber){ waNumber = '+234'+Math.floor(700000000+Math.random()*99999999); sessionStorage.setItem('replyo_wa', waNumber); }
+
+function el(id){return document.getElementById(id)}
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function now(){return new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}
+
+function renderChips(){
+  const c=el('chips'); c.innerHTML='';
+  CHIPS.forEach(t=>{const b=document.createElement('div');b.className='chip';b.textContent=t;
+    b.onclick=()=>{el('liveInput').value=t;sendLive();};c.appendChild(b);});
+}
+function bubble(m){
+  const d=document.createElement('div');
+  if(m.origin==='customer'){d.className='bub out';d.innerHTML=esc(m.content)+`<span class="t">${now()}</span>`;}
+  else if(m.origin==='human'){d.className='bub in';d.innerHTML=`<span class="who">Operator</span>${esc(m.content)}<span class="t">${now()}</span>`;}
+  else if(m.origin==='system'){d.className='bub in';d.innerHTML=`<span class="who">CoolFix</span>${esc(m.content)}<span class="t">${now()}</span>`;}
+  else {d.className='bub in';d.innerHTML=`<span class="who">CoolFix AI</span>${esc(m.content)}<span class="t">${now()}</span>`;}
+  return d;
+}
+function renderMsgs(msgs){
+  const box=el('liveMsgs'); box.innerHTML='';
+  if(!msgs.length){
+    box.appendChild(bubble({origin:'ai',content:"Hi! Welcome to CoolFix Services 👋 Ask me about AC servicing, repairs, installs, electrical work or generators — or try booking a visit."}));
+  } else { msgs.forEach(m=>box.appendChild(bubble(m))); }
+  box.scrollTop=box.scrollHeight;
+}
+function typing(on){
+  const box=el('liveMsgs'); let t=el('tp');
+  if(on && !t){t=document.createElement('div');t.id='tp';t.className='typing';t.textContent='CoolFix AI is typing…';box.appendChild(t);box.scrollTop=box.scrollHeight;}
+  if(!on && t) t.remove();
+}
+async function sendLive(){
+  const inp=el('liveInput'); const text=inp.value.trim(); if(!text)return; inp.value='';
+  const box=el('liveMsgs'); box.appendChild(bubble({origin:'customer',content:text})); box.scrollTop=box.scrollHeight;
+  typing(true);
+  try{
+    const r=await fetch('/api/simulator/message',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text,wa_number:waNumber})});
+    const d=await r.json(); typing(false);
+    renderMsgs(d.messages||[]);
+    if(d.result&&d.result.requires_human) el('liveStatus').textContent='online • connecting you to a human…';
+  }catch(e){ typing(false); alert('Error: '+e); }
+}
+async function loadLive(){
+  try{
+    const r=await fetch('/api/simulator/conversation?wa_number='+encodeURIComponent(waNumber));
+    const d=await r.json(); renderMsgs(d.messages||[]);
+  }catch(e){ renderMsgs([]); }
+}
+renderChips(); loadLive();
+</script>
+</body>
+</html>
