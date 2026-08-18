@@ -67,9 +67,27 @@
 </style>
 </head>
 <body>
+  <div id="login" style="position:fixed;inset:0;background:rgba(7,19,26,.8);display:none;
+       align-items:center;justify-content:center;z-index:200">
+    <div style="background:#fff;padding:30px;border-radius:16px;width:360px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+      <div style="font-weight:800;font-size:20px;margin-bottom:4px">CoolFix Dashboard</div>
+      <p style="color:#64748b;font-size:14px;margin:0 0 16px">Enter your dashboard token to sign in.
+        (This is the <b>DASHBOARD_TOKEN</b> you set in Render.)</p>
+      <input id="tokenInput" type="password" placeholder="DASHBOARD_TOKEN"
+             onkeydown="if(event.key==='Enter')saveToken()"
+             style="width:100%;padding:11px 13px;border:1px solid #d7dde5;border-radius:10px;font-size:14px;margin-bottom:8px">
+      <div id="loginErr" style="color:#c0392b;font-size:13px;min-height:18px;margin-bottom:6px"></div>
+      <button onclick="saveToken()"
+              style="width:100%;padding:11px;background:#128c7e;color:#fff;border:none;border-radius:10px;
+              font-size:15px;font-weight:600;cursor:pointer">Sign in</button>
+    </div>
+  </div>
   <header>
     <div class="brand"><div class="avatar">CF</div> CoolFix Services — Operator Dashboard</div>
-    <a href="/" target="_blank">Open WhatsApp simulator ↗</a>
+    <div style="display:flex;gap:16px;align-items:center">
+      <a href="/" target="_blank">Open site ↗</a>
+      <a href="#" onclick="logout();return false" style="font-size:13px">Sign out</a>
+    </div>
   </header>
   <div class="tabs" id="tabs"></div>
   <main id="main"></main>
@@ -82,7 +100,20 @@ function el(id){return document.getElementById(id)}
 function pill(s){return `<span class="pill ${s||''}">${(s||'—').replace(/_/g,' ')}</span>`}
 function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function tm(s){return s? new Date(s).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):''}
-async function api(path,opts){const r=await fetch(path,opts);if(!r.ok)throw new Error(r.status);return r.json()}
+function getToken(){return localStorage.getItem('replyo_token')||''}
+function showLogin(err){const l=el('login'); if(l){l.style.display='flex'; if(err)el('loginErr').textContent=err;}}
+function hideLogin(){const l=el('login'); if(l)l.style.display='none';}
+function saveToken(){const t=el('tokenInput').value.trim(); if(!t)return; localStorage.setItem('replyo_token',t); hideLogin(); render();}
+function logout(){localStorage.removeItem('replyo_token'); showLogin('');}
+async function api(path,opts){
+  opts=opts||{}; const h=Object.assign({}, opts.headers||{});
+  const tok=getToken(); if(tok) h['Authorization']='Bearer '+tok;
+  opts.headers=h;
+  const r=await fetch(path,opts);
+  if(r.status===401){ showLogin(getToken()?'That token was rejected. Check DASHBOARD_TOKEN in Render and try again.':''); throw new Error('401'); }
+  if(!r.ok) throw new Error(r.status);
+  return r.json();
+}
 
 function renderTabs(){
   const t=el('tabs'); t.innerHTML='';
