@@ -23,7 +23,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://YOUR-APP-URL.onrender.com/api/inbound",
+        "url": "https://coolfix-whatsapp.onrender.com/api/inbound",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [

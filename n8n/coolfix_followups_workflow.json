@@ -15,7 +15,7 @@
       "parameters": {
         "assignments": {
           "assignments": [
-            { "id": "a1", "name": "baseUrl", "value": "https://YOUR-NGROK-SUBDOMAIN.ngrok-free.app", "type": "string" },
+            { "id": "a1", "name": "baseUrl", "value": "https://coolfix-whatsapp.onrender.com", "type": "string" },
             { "id": "a2", "name": "authToken", "value": "", "type": "string" }
           ]
         },
