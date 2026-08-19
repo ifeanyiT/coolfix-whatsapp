@@ -55,11 +55,11 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $node[\"Config (edit me)\"].json.baseUrl }}/api/leads/{{ $json.id }}/followup",
+        "url": "={{ $('Config (edit me)').first().json.baseUrl }}/api/leads/{{ $json.id }}/followup",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "=Bearer {{ $node[\"Config (edit me)\"].json.authToken }}" }
+            { "name": "Authorization", "value": "=Bearer {{ $('Config (edit me)').first().json.authToken }}" }
           ]
         },
         "options": {}
@@ -81,11 +81,11 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $node[\"Config (edit me)\"].json.baseUrl }}/api/appointments/{{ $json.id }}/remind",
+        "url": "={{ $('Config (edit me)').first().json.baseUrl }}/api/appointments/{{ $json.id }}/remind",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "=Bearer {{ $node[\"Config (edit me)\"].json.authToken }}" }
+            { "name": "Authorization", "value": "=Bearer {{ $('Config (edit me)').first().json.authToken }}" }
           ]
         },
         "options": {}
