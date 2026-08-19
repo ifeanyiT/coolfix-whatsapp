@@ -164,12 +164,12 @@ def api_inbound(msg: InboundMessage, _=Depends(require_auth)):
     """
     res = process_inbound(msg.wa_number, msg.text, name=msg.name, deliver=msg.deliver)
     return {
-        "reply": res["reply"],
-        "intent": res["intent"],
-        "confidence": res["confidence"],
-        "requires_human": res["requires_human"],
+        "reply": res.get("reply"),
+        "intent": res.get("intent"),
+        "confidence": res.get("confidence"),
+        "requires_human": res.get("requires_human", False),
         "paused": res.get("paused", False),
-        "actions": res["actions"],
+        "actions": res.get("actions", []),
         "wa_number": msg.wa_number,
     }
 

@@ -59,6 +59,7 @@ def process_inbound(wa_number: str, text: str, name: str = None,
         return {
             "conversation_id": conv["id"], "customer_id": customer["id"],
             "paused": True, "reply": None, "intent": "human_support",
+            "confidence": 1.0, "requires_human": True, "service": None,
             "actions": ["ai_paused"], "message_id": inbound["id"],
         }
 
