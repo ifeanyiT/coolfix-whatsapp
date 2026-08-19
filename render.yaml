@@ -12,7 +12,7 @@ services:
     healthCheckPath: /api/health
     envVars:
       - key: AI_PROVIDER
-        value: mock            # set to "openai" and add OPENAI_API_KEY to go live
+        value: openai          # uses OpenAI when OPENAI_API_KEY is set; else falls back to mock
       - key: WHATSAPP_PROVIDER
         value: mock            # n8n does the sending; app stays mock (no double-send)
       - key: META_VERIFY_TOKEN
