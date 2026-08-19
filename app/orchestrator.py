@@ -57,10 +57,15 @@ def process_inbound(wa_number: str, text: str, name: str = None,
             "actions": ["ai_paused"], "message_id": inbound["id"],
         }
 
-    # 3) retrieve memory + run the AI
+    # 3) retrieve memory + run the AI (fall back to the mock engine if the LLM errors)
     history = repo.get_history(conv["id"])
     state = _load_state(conv)
-    ai = get_engine().analyze(kb, history, state, text)
+    try:
+        ai = get_engine().analyze(kb, history, state, text)
+    except Exception as e:  # noqa: BLE001 - never let an LLM hiccup break a live chat
+        from .ai.mock_ai import MockAI
+        repo.log_automation(business_id, "ai_error", "fallback_to_mock", {"error": str(e)[:300]})
+        ai = MockAI().analyze(kb, history, state, text)
 
     # 4) merge extracted info into memory + customer record
     actions: list[str] = []

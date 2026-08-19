@@ -40,31 +40,58 @@ class AIResult:
 
 
 def render_knowledge(kb: dict) -> str:
-    """Render the business knowledge as compact text for an LLM system prompt."""
-    lines = [
+    """Render the business knowledge as text for an LLM system prompt (the RAG context)."""
+    L = [
         f"BUSINESS: {kb['name']} - {kb['tagline']}",
-        f"PHONE: {kb['phone']} | EMAIL: {kb['email']}",
+        f"PHONE/WHATSAPP: {kb['phone']} | EMAIL: {kb['email']}",
+        f"ADDRESS: {kb.get('address','')}",
         f"TONE: {kb['tone']}",
         "",
         "OPENING HOURS:",
     ]
     for day, hrs in kb["opening_hours"].items():
-        lines.append(f"  {day}: {hrs}")
-    lines.append("")
-    lines.append("SERVICE AREAS: " + ", ".join(kb["service_areas"]))
-    lines.append("")
-    lines.append("SERVICES:")
+        L.append(f"  {day}: {hrs}")
+    L += ["", "SERVICE AREAS (only these): " + ", ".join(kb["service_areas"]), ""]
+
+    L.append("SERVICES (answer only about these):")
     for s in kb["services"]:
-        lines.append(f"  - {s['name']} ({s['slug']}): {s['description']} | Price: {s['price']}")
-    lines.append("")
-    lines.append("FAQs:")
-    for f in kb["faqs"]:
-        lines.append(f"  Q: {f['question']}\n    A: {f['answer']}")
-    lines.append("")
-    lines.append("POLICIES:")
-    for p in kb["policies"]:
-        lines.append(f"  - {p['title']}: {p['body']}")
+        L.append(f"- {s['name']} (slug: {s['slug']})")
+        L.append(f"    What: {s.get('description', s.get('short',''))}")
+        L.append(f"    Price: {s['price']}")
+        if s.get("duration"):
+            L.append(f"    Duration: {s['duration']}")
+        if s.get("includes"):
+            L.append(f"    Includes: {', '.join(s['includes'])}")
+        for prob, cause in (s.get("common_problems") or {}).items():
+            L.append(f"    Problem '{prob}': {cause}")
+        if s.get("notes"):
+            L.append(f"    Notes: {s['notes']}")
+    L.append("")
+
     br = kb["booking_rules"]
-    lines.append("")
-    lines.append(f"BOOKING SLOTS: {', '.join(br['slots'])}. {br.get('note','')}")
-    return "\n".join(lines)
+    L.append("BOOKING RULES:")
+    L.append(f"  Slots: {', '.join(br['slots'])}")
+    for k in ("same_day", "sunday", "reschedule"):
+        if br.get(k):
+            L.append(f"  {br[k]}")
+    L.append("")
+
+    pay = kb.get("payment", {})
+    if pay:
+        L.append("PAYMENT: " + ", ".join(pay.get("methods", [])) + f". {pay.get('when','')} {pay.get('deposit','')}")
+    L.append("")
+
+    L.append("POLICIES:")
+    for p in kb["policies"]:
+        L.append(f"  - {p['title']}: {p['body']}")
+    L.append("")
+
+    L.append("FAQs:")
+    for f in kb["faqs"]:
+        L.append(f"  Q: {f['question']}\n    A: {f['answer']}")
+
+    oos = kb.get("out_of_scope")
+    if oos:
+        L += ["", "OUT OF SCOPE (do NOT offer or pretend to do these): " + ", ".join(oos["examples"]),
+              "  " + oos["note"]]
+    return "\n".join(L)

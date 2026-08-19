@@ -9,49 +9,36 @@ import json
 from typing import Any, Optional
 
 from . import db
+from . import knowledge
 from .config import settings
 
 
 # ---------------------------------------------------------------- knowledge
 def get_business_knowledge(business_id: str = None) -> dict:
-    """Retrieve the full business knowledge bundle the AI is allowed to use."""
-    business_id = business_id or settings.BUSINESS_ID
-    with db.connect() as conn:
-        b = conn.execute("SELECT * FROM businesses WHERE id=?", (business_id,)).fetchone()
-        if not b:
-            return {}
-        services = conn.execute(
-            "SELECT * FROM services WHERE business_id=?", (business_id,)
-        ).fetchall()
-        faqs = conn.execute(
-            "SELECT * FROM faqs WHERE business_id=?", (business_id,)
-        ).fetchall()
-        policies = conn.execute(
-            "SELECT * FROM knowledge_entries WHERE business_id=?", (business_id,)
-        ).fetchall()
+    """The full business knowledge the AI is allowed to use.
 
+    Read straight from the knowledge module (the versioned source of truth) so
+    edits take effect on deploy without any stale database copies.
+    """
+    b = knowledge.BUSINESS
     return {
         "id": b["id"],
         "name": b["name"],
         "tagline": b["tagline"],
         "tone": b["tone"],
         "phone": b["phone"],
+        "whatsapp": b.get("whatsapp", b["phone"]),
         "email": b["email"],
-        "opening_hours": json.loads(b["opening_hours"]),
-        "service_areas": json.loads(b["service_areas"]),
-        "booking_rules": json.loads(b["booking_rules"]),
-        "services": [
-            {
-                "slug": s["slug"], "name": s["name"], "description": s["description"],
-                "price": s["price"], "keywords": json.loads(s["keywords"]),
-            }
-            for s in services
-        ],
-        "faqs": [
-            {"question": f["question"], "answer": f["answer"], "keywords": json.loads(f["keywords"])}
-            for f in faqs
-        ],
-        "policies": [{"title": p["title"], "body": p["body"]} for p in policies],
+        "address": b.get("address", ""),
+        "established": b.get("established", ""),
+        "opening_hours": b["opening_hours"],
+        "service_areas": b["service_areas"],
+        "booking_rules": b["booking_rules"],
+        "payment": b.get("payment", {}),
+        "policies": b["policies"],
+        "services": knowledge.SERVICES,
+        "faqs": knowledge.FAQS,
+        "out_of_scope": knowledge.OUT_OF_SCOPE,
     }
 
 

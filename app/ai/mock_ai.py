@@ -36,6 +36,16 @@ class MockAI:
         awaiting = state.get("awaiting")
         extracted = {}
 
+        # Politely decline things the business doesn't do (unless mid-booking).
+        oos = self._out_of_scope(kb, text) if awaiting not in ("service", "location", "preferred_time") else None
+        if oos:
+            names = "air-conditioning, electrical work and generators"
+            reply = (f"Sorry, we don't handle {oos} - {kb['name']} only does {names}. "
+                     f"Can I help you with any of those?")
+            return AIResult(intent="unknown", confidence=0.9, requires_human=False,
+                            service=None, extracted={}, reply=reply, model=self.model,
+                            raw={"engine": "mock", "out_of_scope": oos})
+
         service_slug = self._match_service(kb, text)
         location, in_area = self._match_location(kb, message, awaiting)
         preferred_time, slot = self._match_time(text, awaiting)
@@ -54,8 +64,9 @@ class MockAI:
             extracted["name"] = name
 
         # ---- intent detection (priority order) ----
+        faq_hit = self._faq_hit(kb, text)
         intent, confidence, requires_human = self._detect_intent(
-            text, awaiting, service_slug, preferred_time, state
+            text, awaiting, service_slug, preferred_time, state, faq_hit
         )
 
         reply = self._informational_reply(kb, intent, service_slug, location, in_area)
@@ -67,29 +78,30 @@ class MockAI:
         )
 
     # ---------------------------------------------------------------- intent
-    def _detect_intent(self, text, awaiting, service_slug, preferred_time, state):
+    def _detect_intent(self, text, awaiting, service_slug, preferred_time, state, faq_hit):
         if self._any(text, EMERGENCY_WORDS):
             return "emergency", 0.97, True
         if self._any(text, HUMAN_WORDS):
             return "human_support", 0.96, True
         if self._any(text, COMPLAINT_WORDS):
             return "complaint", 0.9, True
-        # Questions about opening hours are FAQ, not booking, even if a day is named.
         asks_hours = self._any(text, ["open", "hour", "close", "closing", "what time", "when do you"])
-        # If we're mid-booking (awaiting a slot), keep treating replies as booking.
+        # Mid-booking: keep treating short replies as booking answers.
         if awaiting in ("service", "location", "preferred_time", "name"):
             return "booking", 0.9, False
+        # Explicit booking request wins.
         if self._any(text, BOOKING_WORDS):
             return "booking", 0.92, False
-        # A bare time only means booking if we're already in a service/booking context.
+        # A matched FAQ (our knowledge bank) answers the question directly.
+        if faq_hit:
+            return "faq", 0.88, False
+        # A bare time only means booking if we're already in a service context.
         if preferred_time and not asks_hours and state.get("service"):
             return "booking", 0.88, False
         if self._any(text, PRICING_WORDS):
             return "pricing", 0.9, False
         if service_slug:
             return "service_info", 0.85, False
-        if self._faq_match(text) is not None:
-            return "faq", 0.85, False
         if self._any(text, GREETING_WORDS) and len(text.split()) <= 4:
             return "greeting", 0.8, False
         return "unknown", 0.35, False
@@ -117,6 +129,25 @@ class MockAI:
         return None
 
     # ------------------------------------------------------------ extractors
+    def _out_of_scope(self, kb, text):
+        """Return the out-of-scope item if the customer wants us to work on it."""
+        oos = kb.get("out_of_scope") or {}
+        service_ctx = ["repair", "fix", "service", "servicing", "install", "not working",
+                       "broken", "faulty", "won't", "wont", "problem with", "help with", "spoil"]
+        has_ctx = any(w in text for w in service_ctx)
+        if not has_ctx:
+            return None
+        for item in oos.get("examples", []):
+            if re.search(rf"\b{re.escape(item)}s?\b", text):
+                return item
+        return None
+
+    def _faq_hit(self, kb, text):
+        for f in kb.get("faqs", []):
+            if any(kw in text for kw in f["keywords"]):
+                return True
+        return False
+
     def _match_service(self, kb, text):
         best = None
         for s in kb["services"]:
