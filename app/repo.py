@@ -115,15 +115,12 @@ def get_active_conversation(business_id: str, customer_id: int) -> dict:
         ).fetchone()
         if row:
             return dict(row)
-        conn.execute(
+        cid = conn.insert(
             """INSERT INTO conversations(business_id,customer_id,status,mode,state,created_at,updated_at)
                VALUES(?,?,?,?,?,?,?)""",
             (business_id, customer_id, "active", "ai", json.dumps({}), db.now_iso(), db.now_iso()),
         )
-        row = conn.execute(
-            "SELECT * FROM conversations WHERE business_id=? AND customer_id=? ORDER BY id DESC LIMIT 1",
-            (business_id, customer_id),
-        ).fetchone()
+        row = conn.execute("SELECT * FROM conversations WHERE id=?", (cid,)).fetchone()
         return dict(row)
 
 
@@ -165,14 +162,13 @@ def add_message(conversation_id: int, business_id: str, customer_id: int,
                 wa_message_id: str = None, status: str = "sent",
                 mtype: str = "text", meta: dict = None) -> dict:
     with db.connect() as conn:
-        cur = conn.execute(
+        mid = conn.insert(
             """INSERT INTO messages(conversation_id,business_id,customer_id,direction,origin,
                type,content,wa_message_id,status,meta,created_at)
                VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
             (conversation_id, business_id, customer_id, direction, origin, mtype, content,
              wa_message_id, status, json.dumps(meta or {}), db.now_iso()),
         )
-        mid = cur.lastrowid
         row = conn.execute("SELECT * FROM messages WHERE id=?", (mid,)).fetchone()
         return dict(row)
 
@@ -243,8 +239,8 @@ def upsert_lead(business_id: str, customer_id: int, conversation_id: int, **fiel
             cols.append(k)
             vals.append(v)
         placeholders = ",".join("?" * len(vals))
-        conn.execute(f"INSERT INTO leads({','.join(cols)}) VALUES({placeholders})", vals)
-        row = conn.execute("SELECT * FROM leads ORDER BY id DESC LIMIT 1").fetchone()
+        lid = conn.insert(f"INSERT INTO leads({','.join(cols)}) VALUES({placeholders})", vals)
+        row = conn.execute("SELECT * FROM leads WHERE id=?", (lid,)).fetchone()
         return dict(row)
 
 
@@ -269,13 +265,13 @@ def mark_lead_followed(lead_id: int) -> None:
 def create_appointment(business_id: str, customer_id: int, lead_id: int,
                        service: str, scheduled_for: str, slot: str, notes: str = None) -> dict:
     with db.connect() as conn:
-        conn.execute(
+        aid = conn.insert(
             """INSERT INTO appointments(business_id,customer_id,lead_id,service,scheduled_for,slot,
                status,notes,created_at) VALUES(?,?,?,?,?,?,?,?,?)""",
             (business_id, customer_id, lead_id, service, scheduled_for, slot, "upcoming",
              notes, db.now_iso()),
         )
-        row = conn.execute("SELECT * FROM appointments ORDER BY id DESC LIMIT 1").fetchone()
+        row = conn.execute("SELECT * FROM appointments WHERE id=?", (aid,)).fetchone()
         return dict(row)
 
 
@@ -332,12 +328,12 @@ def create_handoff(conversation_id: int, business_id: str, reason: str) -> dict:
         ).fetchone()
         if open_:
             return dict(open_)
-        conn.execute(
+        hid = conn.insert(
             """INSERT INTO human_handoffs(conversation_id,business_id,reason,status,created_at)
                VALUES(?,?,?,?,?)""",
             (conversation_id, business_id, reason, "open", db.now_iso()),
         )
-        row = conn.execute("SELECT * FROM human_handoffs ORDER BY id DESC LIMIT 1").fetchone()
+        row = conn.execute("SELECT * FROM human_handoffs WHERE id=?", (hid,)).fetchone()
         return dict(row)
 
 
@@ -471,17 +467,18 @@ def find_conversation_by_number(business_id: str, wa_number: str) -> Optional[di
 def analytics(business_id: str) -> dict:
     with db.connect() as conn:
         def one(q, *p):
-            return conn.execute(q, p).fetchone()[0]
+            row = conn.execute(q, p).fetchone()
+            return (row["c"] if row else 0) or 0
 
-        conversations = one("SELECT COUNT(*) FROM conversations WHERE business_id=?", business_id)
-        leads = one("SELECT COUNT(*) FROM leads WHERE business_id=?", business_id)
+        conversations = one("SELECT COUNT(*) AS c FROM conversations WHERE business_id=?", business_id)
+        leads = one("SELECT COUNT(*) AS c FROM leads WHERE business_id=?", business_id)
         qualified = one(
-            "SELECT COUNT(*) FROM leads WHERE business_id=? AND status IN ('qualified','appointment_requested','booked','completed')",
+            "SELECT COUNT(*) AS c FROM leads WHERE business_id=? AND status IN ('qualified','appointment_requested','booked','completed')",
             business_id)
-        booked = one("SELECT COUNT(*) FROM appointments WHERE business_id=?", business_id)
-        handoffs = one("SELECT COUNT(*) FROM human_handoffs WHERE business_id=?", business_id)
-        waiting = one("SELECT COUNT(*) FROM conversations WHERE business_id=? AND status='waiting_human'", business_id)
-        messages = one("SELECT COUNT(*) FROM messages WHERE business_id=?", business_id)
+        booked = one("SELECT COUNT(*) AS c FROM appointments WHERE business_id=?", business_id)
+        handoffs = one("SELECT COUNT(*) AS c FROM human_handoffs WHERE business_id=?", business_id)
+        waiting = one("SELECT COUNT(*) AS c FROM conversations WHERE business_id=? AND status='waiting_human'", business_id)
+        messages = one("SELECT COUNT(*) AS c FROM messages WHERE business_id=?", business_id)
     conversion = round((booked / conversations * 100), 1) if conversations else 0.0
     return {
         "conversations": conversations,
