@@ -65,20 +65,25 @@ class LeadStatusIn(BaseModel):
 
 
 # ------------------------------------------------------------------ pages
+def _page(name: str) -> FileResponse:
+    # no-store so browsers always fetch the latest UI (avoids stale cached pages)
+    return FileResponse(WEB_DIR / name, headers={"Cache-Control": "no-store, max-age=0"})
+
+
 @app.get("/", include_in_schema=False)
 def index():
-    return FileResponse(WEB_DIR / "landing.html")
+    return _page("landing.html")
 
 
 @app.get("/demo", include_in_schema=False)
 def demo_page():
     # The raw two-panel simulator (with the developer intent/state panel).
-    return FileResponse(WEB_DIR / "simulator.html")
+    return _page("simulator.html")
 
 
 @app.get("/dashboard", include_in_schema=False)
 def dashboard_page():
-    return FileResponse(WEB_DIR / "dashboard.html")
+    return _page("dashboard.html")
 
 
 @app.get("/api/health")
