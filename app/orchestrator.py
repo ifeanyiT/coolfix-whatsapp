@@ -15,6 +15,11 @@ not by the language model, so the bot never claims an action that didn't happen.
 """
 from __future__ import annotations
 
+import re
+import threading
+
+import httpx
+
 from . import repo
 from .ai import get_engine
 from .ai.base import HANDOFF_INTENTS
@@ -215,6 +220,7 @@ def _book(kb, business_id, conv, customer, state, lead, actions) -> str:
     repo.update_conversation(conv["id"], status="active")
     repo.log_automation(business_id, "appointment_booking", "created",
                         {"appointment_id": appt["id"], "service": service["slug"]})
+    _notify_booking(kb, customer, service, state, appt, scheduled_for, slot)
 
     who = state.get("name") or customer.get("name") or "there"
     return (f"✅ Booked, {who}! Here's your appointment:\n"
@@ -299,6 +305,78 @@ def _load_state(conv) -> dict:
 
 def _service(kb, slug):
     return next((s for s in kb["services"] if s["slug"] == slug), None)
+
+
+def _resolve_schedule(preferred_time: str, slot: str):
+    """Best-effort convert 'tomorrow afternoon' + slot into concrete start/end times."""
+    from datetime import datetime, timedelta
+    now = datetime.utcnow() + timedelta(hours=1)  # ~Africa/Lagos (UTC+1)
+    low = (preferred_time or "").lower()
+    weekdays = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+
+    if "today" in low or "now" in low or "asap" in low:
+        date = now.date()
+    elif "tomorrow" in low:
+        date = now.date() + timedelta(days=1)
+    else:
+        wd = next((i for i, d in enumerate(weekdays) if d in low), None)
+        if wd is not None:
+            ahead = (wd - now.weekday()) % 7 or 7
+            date = now.date() + timedelta(days=ahead)
+        else:
+            date = now.date() + timedelta(days=1)  # default: tomorrow
+
+    hour = None
+    m = re.search(r"(\d{1,2})(?::(\d{2}))?\s*(am|pm)", low)
+    both = f"{low} {slot.lower()}"
+    if m:
+        hour = int(m.group(1)) % 12 + (12 if m.group(3) == "pm" else 0)
+    elif "morning" in both:
+        hour = 9
+    elif "afternoon" in both:
+        hour = 13
+    elif "evening" in both or "tonight" in both:
+        hour = 16
+    else:
+        hour = 10
+
+    from datetime import datetime as _dt
+    start = _dt(date.year, date.month, date.day, hour, 0, 0)
+    end = start + timedelta(hours=2)
+    return start.strftime("%Y-%m-%dT%H:%M:%S"), end.strftime("%Y-%m-%dT%H:%M:%S")
+
+
+def _notify_booking(kb, customer, service, state, appt, scheduled_for, slot):
+    """Fire booking details to n8n (for Google Calendar etc.) - non-blocking."""
+    url = settings.N8N_BOOKING_WEBHOOK_URL
+    if not url:
+        return
+    start_iso, end_iso = _resolve_schedule(state.get("preferred_time", ""), slot)
+    payload = {
+        "event": "appointment_booked",
+        "appointment_id": appt["id"],
+        "business": kb["name"],
+        "customer_name": customer.get("name") or "Customer",
+        "wa_number": customer["wa_number"],
+        "service": service["name"],
+        "service_slug": service["slug"],
+        "location": state.get("location"),
+        "scheduled_for": scheduled_for,
+        "slot": slot,
+        "start": start_iso,
+        "end": end_iso,
+        "timezone": settings.BUSINESS_TIMEZONE,
+        "notes": f"Problem: {state.get('problem') or 'n/a'}. Phone: {customer['wa_number']}",
+    }
+
+    def _fire():
+        try:
+            httpx.post(url, json=payload, timeout=10)
+            repo.log_automation(kb["id"], "booking_webhook", "sent", {"appointment_id": appt["id"]})
+        except Exception as e:  # noqa: BLE001
+            repo.log_automation(kb["id"], "booking_webhook", "failed", {"error": str(e)[:200]})
+
+    threading.Thread(target=_fire, daemon=True).start()
 
 
 # =========================================================================

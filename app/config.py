@@ -35,6 +35,12 @@ class Settings:
     HOST: str = os.getenv("HOST", "127.0.0.1")
     PORT: int = int(os.getenv("PORT", "8000"))
 
+    # --- Integrations ---
+    # When set, the app POSTs booking details here so n8n can create a Google
+    # Calendar event (and anything else). Leave empty to disable.
+    N8N_BOOKING_WEBHOOK_URL: str = os.getenv("N8N_BOOKING_WEBHOOK_URL", "").strip()
+    BUSINESS_TIMEZONE: str = os.getenv("BUSINESS_TIMEZONE", "Africa/Lagos")
+
     # --- Business / storage ---
     BUSINESS_ID: str = os.getenv("BUSINESS_ID", "coolfix")
     DB_PATH: str = os.getenv("DB_PATH", str(BASE_DIR / "coolfix.db"))
