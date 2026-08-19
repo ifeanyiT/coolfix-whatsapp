@@ -94,6 +94,10 @@ def health():
         "ai_provider": "openai" if settings.ai_is_live else "mock",
         "ai_engine": get_engine().model,
         "whatsapp_provider": "meta" if settings.whatsapp_is_live else "mock",
+        # diagnostics (no secrets exposed):
+        "ai_provider_setting": settings.AI_PROVIDER,
+        "openai_key_present": bool(settings.OPENAI_API_KEY),
+        "database": "postgres" if db.IS_PG else "sqlite",
     }
 
 
